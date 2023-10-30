@@ -1,0 +1,139 @@
+# Traffic Accident Data Analysis
+
+## Overview
+
+This project analyzes traffic accident data to identify patterns related to road conditions, weather, and time of day. It also visualizes accident hotspots and contributing factors.
+
+## Dataset
+
+The dataset used for this analysis is provided in the file 'UK_Accident.csv' and was obtained from Kaggle. You can find the original dataset on Kaggle [here](https://www.kaggle.com/datasets/devansodariya/road-accident-united-kingdom-uk-dataset/data).
+
+```python
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+# Load the dataset
+df = pd.read_csv('/content/UK_Accident.csv')
+
+# Get general information about the dataset
+print(df.info())
+
+# Summary statistics of numeric columns
+print(df.describe())
+
+##DATA PREPARATION
+# Convert the 'Date' column to a datetime format
+df['Date'] = pd.to_datetime(df['Date'])
+
+# Replace missing values in the 'Time' column with '0:00'
+df['Time'].fillna('0:00', inplace=True)
+
+# Extract the hour from the 'Time' column and convert to int
+df['Hour'] = df['Time'].str.extract('(\d+):').astype(int)
+
+# Impute missing values in numeric columns with the median
+df['Location_Easting_OSGR'].fillna(df['Location_Easting_OSGR'].median(), inplace=True)
+df['Longitude'].fillna(df['Longitude'].median(), inplace=True)
+
+# Impute missing values in categorical columns with the mode
+df['Pedestrian_Crossing-Human_Control'].fillna(df['Pedestrian_Crossing-Human_Control'].mode()[0], inplace=True)
+df['Pedestrian_Crossing-Physical_Facilities'].fillna(df['Pedestrian_Crossing-Physical_Facilities'].mode()[0], inplace=True)
+df['Urban_or_Rural_Area'].fillna(df['Urban_or_Rural_Area'].mode()[0], inplace=True)
+df['Did_Police_Officer_Attend_Scene_of_Accident'].fillna(df['Did_Police_Officer_Attend_Scene_of_Accident'].mode()[0], inplace=True)
+df['LSOA_of_Accident_Location'].fillna(df['LSOA_of_Accident_Location'].mode()[0], inplace=True)
+df.dropna(inplace=True)
+
+
+##EDA
+# Check for missing values
+print(df.isnull().sum())
+
+# Check the correlation between numeric columns
+data_num = df.select_dtypes(np.number)
+
+# Get the count of unique values in each numeric column
+col_name = []
+length = []
+
+for col in data_num.columns:
+    col_name.append(col)
+    length.append(len(data_num[col].unique()))
+
+# Create a DataFrame to display the count of unique values for each numeric column
+df_2 = pd.DataFrame(zip(col_name, length), columns=['feature', 'count_of_unique_values'])
+
+# Plot a heatmap to visualize the correlation between numeric columns
+plt.figure(figsize=(15, 9))
+sns.heatmap(data_num.corr(), annot=True)
+
+##Top 10 Cities by Number of Accidents
+# Group the data by the 'Local_Authority_(District)' column and count the number of accidents
+city_accident_counts = df['Local_Authority_(District)'].value_counts()
+
+# Select the top 10 cities by number of accidents
+top_10_cities = city_accident_counts.head(10)
+
+# Plot a bar graph for the top 10 cities
+plt.figure(figsize=(12, 6))
+top_10_cities.plot(kind='bar', color='skyblue')
+plt.title('Top 10 Cities by Number of Accidents')
+plt.xlabel('City')
+plt.ylabel('Number of Accidents')
+plt.xticks(rotation=45)
+
+##Accident Severity Distribution
+# Count the occurrences of each unique accident severity
+severity_counts = df['Accident_Severity'].value_counts()
+
+# Define the order of severity levels for the x-axis
+severity_order = [1, 2, 3]
+
+# Create a countplot with a specified order
+plt.figure(figsize=(8, 6))
+sns.countplot(data=df, x='Accident_Severity', order=severity_order, palette="Set2")
+plt.title('Accident Severity Distribution')
+plt.xlabel('Accident Severity')
+plt.ylabel('Count')
+
+# Annotate the bars with their counts
+for i, count in enumerate(severity_counts):
+    plt.text(i, count, str(count), ha='center', va='bottom')
+
+##Weather Conditions During Accidents
+# Group the data by 'Weather_Conditions' and count the occurrences of each condition
+weather_counts = df['Weather_Conditions'].value_counts()
+
+# Plot the counts
+plt.figure(figsize=(10, 6))
+sns.barplot(x=weather_counts.index, y=weather_counts.values)
+plt.title('Weather Conditions During Accidents')
+plt.xticks(rotation=90)
+plt.xlabel('Weather Condition')
+plt.ylabel('Count')
+
+##Hourly Distribution of Accidents
+# Count the occurrences of each unique hour
+hourly_counts = df['Hour'].value_counts()
+
+# Sort the data by hour (if not already sorted)
+hourly_counts = hourly_counts.sort_index()
+
+# Plot a graph to visualize the hourly distribution of accidents
+plt.figure(figsize=(12, 6))
+sns.barplot(x=hourly_counts.index, y=hourly_counts.values)
+plt.title('Hourly Distribution of Accidents')
+plt.xlabel('Hour of the Day')
+plt.ylabel('Count')
+plt.xticks(rotation=0)  # You can change the rotation angle if needed
+
+
+##Light Conditions During Accidents
+# Count the occurrences of each unique light condition
+light_condition_counts = df['Light_Conditions'].value_counts()
+
+# Plot a graph to visualize the count of each unique light condition
+plt.figure(figsize=(10, 6))
+sns.barplot(x=light_condition_counts.index, y=light_condition_counts.values)
+plt.title('Light Conditions During Accidents')
